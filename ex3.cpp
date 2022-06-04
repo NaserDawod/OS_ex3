@@ -1,3 +1,4 @@
+//Naser Dawod 323953893
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -7,18 +8,21 @@
 #include <vector>
 #include <semaphore.h>
 #include <unistd.h>
-
 using namespace std;
 
+/**
+ * Note: im using the second option for the Configuration file where its build only from numbers,
+ * I've added a Configuration file for the example.
+ * Also there is a makefile so in order to run it write "make" in the terminal then the ex3.out file well appear
+ * */
+
 class BQueue : public queue<string> {
-    int size;
     sem_t empty;
     sem_t full;
     sem_t mutex;
 public:
     int news_ = 0, sports_ = 0, weather_ = 0;
     BQueue(int size) {
-        this->size = size;
         sem_init(&mutex, 0, 1);
         sem_init(&full, 0, 0);
         sem_init(&empty, 0, size + 1);
