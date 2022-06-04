@@ -15,6 +15,7 @@ class BQueue : public queue<string> {
     sem_t full;
     sem_t mutex;
 public:
+    int news_ = 0, sports_ = 0, weather_ = 0;
     BQueue(int size) {
         this->size = size;
         sem_init(&mutex, 0, 1);
@@ -33,7 +34,7 @@ public:
     string remove() {
         sem_wait(&full);
         sem_wait(&mutex);
-        string s = queue::back();
+        string s = queue::front();
         queue::pop();
         sem_post(&mutex);
         sem_post(&empty);
@@ -60,7 +61,7 @@ public:
     string remove() {
         sem_wait(&full);
         sem_wait(&mutex);
-        string s = queue::back();
+        string s = queue::front();
         queue::pop();
         sem_post(&mutex);
         return s;
@@ -79,16 +80,22 @@ void *produce(void * arg) {
     int i = *index;
     int n = amounts[i];
     BQueue* bq = prods[i];
-    int news_ = 0, sports_ = 0, weather_ = 0;
+    //int news_ = 0, sports_ = 0, weather_ = 0;
     for (int j = 0; j < n; j++) {
         if (j % 3 == 0){
-            string s = "Producer " + to_string(i) + " NEWS " + to_string(news_++);
+            string s = "Producer " + to_string(i) + " NEWS " + to_string(bq->news_);
+            bq->news_++;
+            this_thread::sleep_for(std::chrono::milliseconds(100));
             bq->insert(s);
         } else if (j % 3 == 1) {
-            string s = "Producer " + to_string(i) + " SPORTS " + to_string(sports_++);
+            string s = "Producer " + to_string(i) + " SPORTS " + to_string(bq->sports_);
+            bq->sports_++;
+            this_thread::sleep_for(std::chrono::milliseconds(100));
             bq->insert(s);
         } else {
-            string s = "Producer " + to_string(i) + " WEATHER " + to_string(weather_++);
+            string s = "Producer " + to_string(i) + " WEATHER " + to_string(bq->weather_);
+            bq->weather_++;
+            this_thread::sleep_for(std::chrono::milliseconds(100));
             bq->insert(s);
         }
     }
@@ -98,9 +105,10 @@ void *produce(void * arg) {
 
 void *dispatch(void* arg) {
     bool stop = false;
+    int n = prods.size();
     while (!stop) {
         stop = true;
-        for (int i = 0; i < prods.size(); i++) {
+        for (int i = 0; i < n; i++) {
             if (prods[i] != NULL) {
                 string article = prods[i]->remove();
                 if (article == "done") {
@@ -124,10 +132,11 @@ void *dispatch(void* arg) {
 
 void *coEdit(void * arg) {
     UBQueue* q = (UBQueue *)arg;
+    this_thread::sleep_for(std::chrono::milliseconds(100));
     string art = q->remove();
     while (art != "done") {
-        this_thread::sleep_for(std::chrono::milliseconds(100));
         coEditor->insert(art);
+        this_thread::sleep_for(std::chrono::milliseconds(100));
         art = q->remove();
     }
     coEditor->insert("done");
@@ -165,8 +174,9 @@ int main(int argc, char** argv) {
     for (int i = 0; i < N; i += 1) {
         pthread_t t;
         int x = i;
-        rc1 = pthread_create(&t, NULL, produce, (void *)&x);
+        pthread_create(&t, NULL, produce, (void *)&x);
     }
+    int dis;
     pthread_t disP, coEdit1, coEdit2, coEdit3;
     pthread_create(&disP, NULL, dispatch, NULL);
     pthread_create(&coEdit1, NULL, coEdit, (void *)sports);
